@@ -1,0 +1,9 @@
+const String tCustomers = "tCustomers";
+const String tNote = "tNote";
+const String tNeckDesign = "tNeckDesign";
+const String tBaula = "tBaula";
+const String tSurwal = "tSurwal";
+const String tCloth = "tCloth";
+const String tUserMeasurement = "tUserMeasurement";
+const String tNeckImages = "tNeckImages";
+// const String tPhoneNumbers = "tPhoneNumbers";
