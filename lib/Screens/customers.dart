@@ -41,58 +41,49 @@ class _CustomersListState extends State<CustomersList> {
 
     return RefreshIndicator(
       onRefresh: () async {
-        setState(() {});
-        return;
+        context.bloc<NoteCubit>().getAllNotes();
       },
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(10.0),
-            child: TextField(
-              onChanged: (value) {},
-              decoration: InputDecoration(
-                  suffixIcon: Icon(Icons.search), hintText: "Search"),
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-                padding: EdgeInsets.all(10.0),
-                itemCount: customers.length,
-                itemBuilder: (context, index) {
-                  Note customer = customers[index];
-                  return GestureDetector(
-                    onTap: () {},
-                    onLongPress: () {
-                      Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => BlocProvider.value(
-                                    value: context.bloc<NoteCubit>(),
-                                    child: MeasurementForm(
-                                      mode: Mode.edit,
-                                      note: customer,
-                                    ),
-                                  )));
-                    },
-                    child: Item(
-                      image: customer.image,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            customer.name,
-                            style: Theme.of(context).textTheme.headline6,
-                          ),
-                          Text(customer.phone),
-                          Text(customer.address),
-                        ],
-                      ),
+      child: ListView.builder(
+          padding: EdgeInsets.all(10.0),
+          itemCount: customers.length,
+          itemBuilder: (context, index) {
+            Note customer = customers[index];
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) =>
+                            MeasurementForm(mode: Mode.view, note: customer)));
+              },
+              onLongPress: () {
+                Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (ctx) => BlocProvider.value(
+                              value: context.bloc<NoteCubit>(),
+                              child: MeasurementForm(
+                                mode: Mode.edit,
+                                note: customer,
+                              ),
+                            )));
+              },
+              child: Item(
+                image: customer.image,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      customer.name,
+                      style: Theme.of(context).textTheme.headline6,
                     ),
-                  );
-                }),
-          ),
-        ],
-      ),
+                    Text(customer.phone),
+                    Text(customer.address),
+                  ],
+                ),
+              ),
+            );
+          }),
     );
   }
 

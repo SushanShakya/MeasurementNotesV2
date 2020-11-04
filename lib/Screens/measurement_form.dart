@@ -2,13 +2,15 @@ import 'dart:io';
 import 'package:MeasurementNotesV2/Blocs/notes/note_cubit.dart';
 import 'package:MeasurementNotesV2/Controller/notes_controller.dart';
 import 'package:MeasurementNotesV2/Models/note_model.dart';
+import 'package:MeasurementNotesV2/Screens/Widgets/appbar.dart';
+import 'package:MeasurementNotesV2/Screens/Widgets/button.dart';
 import 'package:MeasurementNotesV2/Storage/utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:MeasurementNotesV2/Screens/Widgets/success_dialog.dart';
 
-enum Mode { add, edit }
+enum Mode { add, edit, view }
 
 class MeasurementForm extends StatefulWidget {
   final Mode mode;
@@ -138,7 +140,7 @@ class _MeasurementFormState extends State<MeasurementForm> {
   void initState() {
     super.initState();
     _imagePicker = ImagePicker();
-    if (widget.mode == Mode.edit) {
+    if (widget.mode != Mode.add) {
       initializeControllers();
     }
   }
@@ -170,8 +172,100 @@ class _MeasurementFormState extends State<MeasurementForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: appBar("Measurements"),
       body: _buildForm(context),
+      bottomNavigationBar: Visibility(
+        visible: widget.mode != Mode.view,
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: Row(
+            // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              Visibility(
+                  visible: widget.mode == Mode.edit,
+                  child: Expanded(
+                      child: SimpleRoundIconButton(
+                    text: "Delete",
+                    icon: Icons.delete,
+                    backgroundColor: Colors.red,
+                    onPressed: () async {
+                      bool value = await showDialog(
+                          context: context,
+                          child: AlertDialog(
+                            title: Text("Delete ?"),
+                            content:
+                                Text("Are you sure you want to delete this ?"),
+                            actions: [
+                              FlatButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop(false);
+                                },
+                                child: Text("No"),
+                              ),
+                              FlatButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop(true);
+                                },
+                                child: Text("Yes"),
+                              ),
+                            ],
+                          ));
+                      if (value) {
+                        await NotesController().deleteNote(widget.note.id);
+                        context.bloc<NoteCubit>().getAllNotes();
+                        showSuccessDialog(context, "Deleted Successfully");
+                      }
+                    },
+                  ))),
+              Visibility(
+                visible: widget.mode == Mode.edit,
+                child: SizedBox(
+                  width: 10.0,
+                ),
+              ),
+              Expanded(
+                child: SimpleRoundIconButton(
+                  text: "Save",
+                  icon: Icons.save,
+                  onPressed: () async {
+                    Note note = Note(
+                        id: widget.note?.id,
+                        name: controller['name'].text,
+                        phone: controller['phone'].text,
+                        address: controller['address'].text,
+                        length: controller['length'].text,
+                        chest: controller['chest'].text,
+                        waist: controller['waist'].text,
+                        hip: controller['hip'].text,
+                        sholder: controller['sholder'].text,
+                        chirne: controller['chirne'].text,
+                        pher: controller['pher'].text,
+                        baulaLength: controller['baula_length'].text,
+                        baulaBreath: controller['baula_breath'].text,
+                        surwalLength: controller['surwal_length'].text,
+                        surwalBreath: controller['surwal_breath'].text,
+                        surwalKnee: controller['surwal_knee'].text,
+                        surwalDesign: controller['surwal_design'].text,
+                        neckBack: controller['neck_back'].text,
+                        neckFront: controller['neck_front'].text,
+                        frontNeck: frontNeckimageFile,
+                        backNeck: backNeckimageFile,
+                        image: userImage);
+                    if (widget.mode == Mode.add)
+                      await NotesController().insertNote(note);
+                    else
+                      await NotesController().updateNotes(note);
+
+                    context.bloc<NoteCubit>().getAllNotes();
+
+                    showSuccessDialog(context, "Saved Successfully");
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -183,115 +277,67 @@ class _MeasurementFormState extends State<MeasurementForm> {
         _buildTemplate(title: "Surwal", data: surwal),
         _buildTemplate(title: "Neck", data: neck),
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             Expanded(
               child: GestureDetector(
-                onTap: () {
-                  showDialog(
-                      context: context,
-                      child: _alert(onCameraPressed: () async {
-                        Navigator.pop(context);
-                        final file = await _getImage(ImageSource.camera);
-                        if (file != null) {
-                          setState(() {
-                            frontNeckimageFile = file;
-                          });
-                        }
-                      }, onGalleryPressed: () async {
-                        Navigator.pop(context);
-                        final file = await _getImage(ImageSource.gallery);
-                        if (file != null) {
-                          setState(() {
-                            frontNeckimageFile = file;
-                          });
-                        }
-                      }));
-                },
+                onTap: (widget.mode == Mode.view)
+                    ? () {}
+                    : () {
+                        showDialog(
+                            context: context,
+                            child: _alert(onCameraPressed: () async {
+                              Navigator.pop(context);
+                              final file = await _getImage(ImageSource.camera);
+                              if (file != null) {
+                                setState(() {
+                                  frontNeckimageFile = file;
+                                });
+                              }
+                            }, onGalleryPressed: () async {
+                              Navigator.pop(context);
+                              final file = await _getImage(ImageSource.gallery);
+                              if (file != null) {
+                                setState(() {
+                                  frontNeckimageFile = file;
+                                });
+                              }
+                            }));
+                      },
                 child: _imagePickContainer(frontNeckimageFile),
               ),
             ),
             Expanded(
               child: GestureDetector(
-                onTap: () {
-                  showDialog(
-                      context: context,
-                      child: _alert(onCameraPressed: () async {
-                        Navigator.pop(context);
-                        final file = await _getImage(ImageSource.camera);
-                        if (file != null) {
-                          setState(() {
-                            backNeckimageFile = file;
-                          });
-                        }
-                      }, onGalleryPressed: () async {
-                        Navigator.pop(context);
-                        final file = await _getImage(ImageSource.gallery);
-                        if (file != null) {
-                          setState(() {
-                            backNeckimageFile = file;
-                          });
-                        }
-                      }));
-                },
+                onTap: (widget.mode == Mode.view)
+                    ? () {}
+                    : () {
+                        showDialog(
+                            context: context,
+                            child: _alert(onCameraPressed: () async {
+                              Navigator.pop(context);
+                              final file = await _getImage(ImageSource.camera);
+                              if (file != null) {
+                                setState(() {
+                                  backNeckimageFile = file;
+                                });
+                              }
+                            }, onGalleryPressed: () async {
+                              Navigator.pop(context);
+                              final file = await _getImage(ImageSource.gallery);
+                              if (file != null) {
+                                setState(() {
+                                  backNeckimageFile = file;
+                                });
+                              }
+                            }));
+                      },
                 child: _imagePickContainer(backNeckimageFile),
               ),
             ),
           ],
         ),
         _buildCustomerInfo(),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            FlatButton(
-                color: Colors.blue,
-                textColor: Colors.white,
-                onPressed: () async {
-                  Note note = Note(
-                      name: controller['name'].text,
-                      phone: controller['phone'].text,
-                      address: controller['address'].text,
-                      length: controller['length'].text,
-                      chest: controller['chest'].text,
-                      waist: controller['waist'].text,
-                      hip: controller['hip'].text,
-                      sholder: controller['sholder'].text,
-                      chirne: controller['chirne'].text,
-                      pher: controller['pher'].text,
-                      baulaLength: controller['baula_length'].text,
-                      baulaBreath: controller['baula_breath'].text,
-                      surwalLength: controller['surwal_length'].text,
-                      surwalBreath: controller['surwal_breath'].text,
-                      surwalKnee: controller['surwal_knee'].text,
-                      surwalDesign: controller['surwal_design'].text,
-                      neckBack: controller['neck_back'].text,
-                      neckFront: controller['neck_front'].text,
-                      frontNeck: frontNeckimageFile,
-                      backNeck: backNeckimageFile,
-                      image: userImage);
-                  if (widget.mode == Mode.add)
-                    await NotesController().insertNote(note);
-                  else
-                    await NotesController().updateNotes(note);
-
-                  context.bloc<NoteCubit>().getAllNotes();
-
-                  showSuccessDialog(context, "Saved Successfully");
-                },
-                child: Text("Save")),
-            Visibility(
-                visible: widget.mode == Mode.edit,
-                child: FlatButton(
-                  child: Text("Delete"),
-                  color: Colors.red,
-                  textColor: Colors.white,
-                  onPressed: () async {
-                    await NotesController().deleteNote(widget.note.id);
-                    context.bloc<NoteCubit>().getAllNotes();
-                    showSuccessDialog(context, "Deleted Successfully");
-                  },
-                ))
-          ],
-        )
       ],
     );
   }
@@ -303,7 +349,7 @@ class _MeasurementFormState extends State<MeasurementForm> {
             borderRadius: BorderRadius.circular(20), color: Colors.grey),
         height: 120,
         width: 100,
-        child: image == null
+        child: image == null && widget.mode != Mode.view
             ? Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -319,7 +365,9 @@ class _MeasurementFormState extends State<MeasurementForm> {
                 decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
                     image: DecorationImage(
-                      image: Utility.imageFromBase64String(image),
+                      image: image != null
+                          ? Utility.imageFromBase64String(image)
+                          : AssetImage("assets/notfound.png"),
                       fit: BoxFit.cover,
                     )),
               ));
@@ -347,54 +395,59 @@ class _MeasurementFormState extends State<MeasurementForm> {
                             const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 5.0),
                         child: SizedBox(
                           width: MediaQuery.of(context).size.width / 2 - 40.0,
-                          child: TextFormField(
-                            keyboardType: textInputType[customerInfo[index]],
-                            controller: controller[customerInfo[index]],
-                            decoration: InputDecoration(
-                                contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 25.0, vertical: 20.0),
-                                labelText: nepali[customerInfo[index]],
-                                floatingLabelBehavior:
-                                    FloatingLabelBehavior.always),
-                            focusNode: (index == 0)
-                                ? null
-                                : focusNode[customerInfo[index]],
-                            onEditingComplete:
-                                (index != customerInfo.length - 1)
-                                    ? () {
-                                        FocusScope.of(context).requestFocus(
-                                            focusNode[customerInfo[index + 1]]);
-                                      }
-                                    : () {
-                                        FocusScope.of(context)
-                                            .requestFocus(FocusNode());
-                                      },
+                          child: IgnorePointer(
+                            ignoring: widget.mode == Mode.view,
+                            child: TextFormField(
+                              keyboardType: textInputType[customerInfo[index]],
+                              controller: controller[customerInfo[index]],
+                              decoration: InputDecoration(
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 25.0, vertical: 20.0),
+                                  labelText: nepali[customerInfo[index]],
+                                  floatingLabelBehavior:
+                                      FloatingLabelBehavior.always),
+                              focusNode: (index == 0)
+                                  ? null
+                                  : focusNode[customerInfo[index]],
+                              onEditingComplete: (index !=
+                                      customerInfo.length - 1)
+                                  ? () {
+                                      FocusScope.of(context).requestFocus(
+                                          focusNode[customerInfo[index + 1]]);
+                                    }
+                                  : () {
+                                      FocusScope.of(context)
+                                          .requestFocus(FocusNode());
+                                    },
+                            ),
                           ),
                         ),
                       )),
             )),
             GestureDetector(
-                onTap: () {
-                  showDialog(
-                      context: context,
-                      child: _alert(onCameraPressed: () async {
-                        Navigator.pop(context);
-                        final file = await _getImage(ImageSource.camera);
-                        if (file != null) {
-                          setState(() {
-                            userImage = file;
-                          });
-                        }
-                      }, onGalleryPressed: () async {
-                        Navigator.pop(context);
-                        final file = await _getImage(ImageSource.gallery);
-                        if (file != null) {
-                          setState(() {
-                            userImage = file;
-                          });
-                        }
-                      }));
-                },
+                onTap: (widget.mode == Mode.view)
+                    ? () {}
+                    : () {
+                        showDialog(
+                            context: context,
+                            child: _alert(onCameraPressed: () async {
+                              Navigator.pop(context);
+                              final file = await _getImage(ImageSource.camera);
+                              if (file != null) {
+                                setState(() {
+                                  userImage = file;
+                                });
+                              }
+                            }, onGalleryPressed: () async {
+                              Navigator.pop(context);
+                              final file = await _getImage(ImageSource.gallery);
+                              if (file != null) {
+                                setState(() {
+                                  userImage = file;
+                                });
+                              }
+                            }));
+                      },
                 child: _imagePickContainer(userImage))
           ],
         )
@@ -420,25 +473,29 @@ class _MeasurementFormState extends State<MeasurementForm> {
                     padding: const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 5.0),
                     child: SizedBox(
                       width: MediaQuery.of(context).size.width / 2 - 40.0,
-                      child: TextFormField(
-                        keyboardType: textInputType[data[index]],
-                        controller: controller[data[index]],
-                        decoration: InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 25.0, vertical: 20.0),
-                            labelText: nepali[data[index]],
-                            floatingLabelBehavior:
-                                FloatingLabelBehavior.always),
-                        focusNode: (index == 0) ? null : focusNode[data[index]],
-                        onEditingComplete: (index != data.length - 1)
-                            ? () {
-                                FocusScope.of(context)
-                                    .requestFocus(focusNode[data[index + 1]]);
-                              }
-                            : () {
-                                FocusScope.of(context)
-                                    .requestFocus(FocusNode());
-                              },
+                      child: IgnorePointer(
+                        ignoring: widget.mode == Mode.view,
+                        child: TextFormField(
+                          keyboardType: textInputType[data[index]],
+                          controller: controller[data[index]],
+                          decoration: InputDecoration(
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 25.0, vertical: 20.0),
+                              labelText: nepali[data[index]],
+                              floatingLabelBehavior:
+                                  FloatingLabelBehavior.always),
+                          focusNode:
+                              (index == 0) ? null : focusNode[data[index]],
+                          onEditingComplete: (index != data.length - 1)
+                              ? () {
+                                  FocusScope.of(context)
+                                      .requestFocus(focusNode[data[index + 1]]);
+                                }
+                              : () {
+                                  FocusScope.of(context)
+                                      .requestFocus(FocusNode());
+                                },
+                        ),
                       ),
                     ),
                   )),

@@ -10,7 +10,7 @@ class Item extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-        height: MediaQuery.of(context).size.height / 3.5,
+        height: MediaQuery.of(context).size.height / 4,
         child: Card(
           margin: EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 0.0),
           child: Row(

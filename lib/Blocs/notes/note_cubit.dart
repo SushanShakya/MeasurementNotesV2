@@ -10,13 +10,27 @@ class NoteCubit extends Cubit<NoteState> {
   NotesController _controller = NotesController();
   NoteCubit() : super(NoteInitial());
 
+  List<Note> notes;
+
   void getAllNotes() {
     emit(NoteLoading());
     _controller.getNotes().then((value) {
-      if (value.isNotEmpty)
+      notes = value;
+      if (value.isEmpty) {
+        emit(NoteFailed("No Data to Show."));
+      } else {
         emit(NoteSuccess(value));
-      else
-        emit(NoteFailed("No Data to Show"));
+      }
     }).catchError((onError) => emit(NoteFailed("Something went wrong.")));
+  }
+
+  void filter(String value) {
+    if (value.isEmpty)
+      emit(NoteSuccess(notes));
+    else
+      emit(NoteSuccess(notes
+          .where((element) =>
+              element.name.toUpperCase().startsWith(value.toUpperCase()))
+          .toList()));
   }
 }
