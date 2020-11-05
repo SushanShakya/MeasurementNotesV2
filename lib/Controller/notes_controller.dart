@@ -18,7 +18,7 @@ class NotesController {
 
     print(data);
 
-    return List<Note>.from(data.map((e) => Note.fromJson(e)).toList());
+    return List<Note>.from(data.map((e) => Note.fromMap(e)).toList());
   }
 
   Future insertNote(Note note) => _db.insertNote(note);

@@ -28,7 +28,7 @@ class DbHelper implements IDb {
   _onCreate(Database database, int version) {
     database.execute('''
           CREATE TABLE $table(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id INTEGER PRIMARY KEY AUTOINCREMENT ,
             length TEXT ,
             chest TEXT ,
             waist TEXT ,
@@ -36,22 +36,20 @@ class DbHelper implements IDb {
             sholder TEXT ,
             chirne TEXT ,
             pher TEXT ,
-            baula_length TEXT ,
-            baula_breath TEXT ,
-            surwal_length TEXT ,
-            surwal_breath TEXT ,
-            surwal_knee TEXT ,
-            surwal_design TEXT ,
-            neck_front TEXT ,
-            neck_back TEXT ,
+            baulaLength TEXT ,
+            baulaBreath TEXT ,
+            surwalLength TEXT ,
+            surwalBreath TEXT ,
+            surwalKnee TEXT ,
+            surwalDesign TEXT ,
+            neckFront TEXT ,
+            neckBack TEXT ,
             frontNeck TEXT ,
             backNeck TEXT ,
             name TEXT ,
             phone TEXT ,
             address TEXT ,
-            image TEXT ,
-            savedDate TEXT,
-            deliveryDate TEXT
+            image TEXT
           );
         ''');
   }
@@ -62,20 +60,12 @@ class DbHelper implements IDb {
 
   @override
   Future<List<Map<String, dynamic>>> fetchCustomerMeasurements() =>
-      db.query(table, orderBy: "name");
+      db.query(table);
 
   @override
-  Future<List<Map<String, dynamic>>> fetchCustomers() =>
-      db.rawQuery("SELECT name, phone, address, image FROM $table");
-
-  @override
-  Future<List<Map<String, dynamic>>> fetchDueWork() => db.rawQuery(
-      "SELECT name, phone, address, image, savedDate, deliveryDate FROM $table");
-
-  @override
-  Future insertNote(Note note) => db.insert(table, note.toJson());
+  Future insertNote(Note note) => db.insert(table, note.toMap());
 
   @override
   Future updateMeasurements(Note note) =>
-      db.update(table, note.toJson(), where: "id = ?", whereArgs: [note.id]);
+      db.update(table, note.toMap(), where: "id = ?", whereArgs: [note.id]);
 }

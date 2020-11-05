@@ -4,7 +4,6 @@ import 'package:MeasurementNotesV2/Controller/notes_controller.dart';
 import 'package:MeasurementNotesV2/Models/note_model.dart';
 import 'package:MeasurementNotesV2/Screens/Widgets/appbar.dart';
 import 'package:MeasurementNotesV2/Screens/Widgets/button.dart';
-import 'package:MeasurementNotesV2/Storage/utility.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -229,7 +228,6 @@ class _MeasurementFormState extends State<MeasurementForm> {
                   icon: Icons.save,
                   onPressed: () async {
                     Note note = Note(
-                        id: widget.note?.id,
                         name: controller['name'].text,
                         phone: controller['phone'].text,
                         address: controller['address'].text,
@@ -251,10 +249,12 @@ class _MeasurementFormState extends State<MeasurementForm> {
                         frontNeck: frontNeckimageFile,
                         backNeck: backNeckimageFile,
                         image: userImage);
-                    if (widget.mode == Mode.add)
+                    if (widget.mode == Mode.add) {
                       await NotesController().insertNote(note);
-                    else
+                    } else {
+                      note.id = widget.note.id;
                       await NotesController().updateNotes(note);
+                    }
 
                     context.bloc<NoteCubit>().getAllNotes();
 
@@ -276,6 +276,7 @@ class _MeasurementFormState extends State<MeasurementForm> {
         _buildTemplate(title: "Kurtha", data: kurtha),
         _buildTemplate(title: "Surwal", data: surwal),
         _buildTemplate(title: "Neck", data: neck),
+        // _buildTemplate(title: "Customer Info", data: customerInfo)
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -366,7 +367,7 @@ class _MeasurementFormState extends State<MeasurementForm> {
                     borderRadius: BorderRadius.circular(20),
                     image: DecorationImage(
                       image: image != null
-                          ? Utility.imageFromBase64String(image)
+                          ? FileImage(File(image))
                           : AssetImage("assets/notfound.png"),
                       fit: BoxFit.cover,
                     )),
@@ -530,9 +531,7 @@ class _MeasurementFormState extends State<MeasurementForm> {
 
   Future<String> _getImage(ImageSource source) async {
     try {
-      return Utility.base64String(
-          File((await _imagePicker.getImage(source: source)).path)
-              .readAsBytesSync());
+      return (await _imagePicker.getImage(source: source)).path;
     } catch (e) {
       return null;
     }
