@@ -61,6 +61,7 @@ class _SuccessDialogueState extends State<SuccessDialogue>
 
 showSuccessDialog(BuildContext context, String message) => showDialog(
     context: context,
+    barrierDismissible: false,
     child: SuccessDialogue(
       message: message,
     ));
