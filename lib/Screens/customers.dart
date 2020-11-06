@@ -44,6 +44,7 @@ class _CustomersListState extends State<CustomersList> {
         context.bloc<NoteCubit>().getAllNotes();
       },
       child: ListView.builder(
+          physics: BouncingScrollPhysics(),
           padding: EdgeInsets.all(10.0),
           itemCount: customers.length,
           itemBuilder: (context, index) {

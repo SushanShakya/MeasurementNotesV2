@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:MeasurementNotesV2/Blocs/image_pick/imagepick_cubit.dart';
 import 'package:MeasurementNotesV2/Blocs/notes/note_cubit.dart';
 import 'package:MeasurementNotesV2/Controller/notes_controller.dart';
 import 'package:MeasurementNotesV2/Models/note_model.dart';
@@ -8,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:MeasurementNotesV2/Screens/Widgets/success_dialog.dart';
+import 'package:lottie/lottie.dart';
+import 'package:photo_view/photo_view.dart';
 
 enum Mode { add, edit, view }
 
@@ -21,6 +24,8 @@ class MeasurementForm extends StatefulWidget {
 }
 
 class _MeasurementFormState extends State<MeasurementForm> {
+  // bool _isLoading = false;
+
   final kurtha = [
     'length',
     'chest',
@@ -124,7 +129,7 @@ class _MeasurementFormState extends State<MeasurementForm> {
     'surwal_length': TextInputType.numberWithOptions(decimal: true),
     'surwal_breath': TextInputType.numberWithOptions(decimal: true),
     'surwal_knee': TextInputType.numberWithOptions(decimal: true),
-    'surwal_design': TextInputType.numberWithOptions(decimal: true),
+    'surwal_design': TextInputType.name,
     'neck_message': TextInputType.name,
   };
 
@@ -135,6 +140,10 @@ class _MeasurementFormState extends State<MeasurementForm> {
 
   ImagePicker _imagePicker;
 
+  ImagepickCubit frontNeckCubit;
+  ImagepickCubit backNeckCubit;
+  ImagepickCubit userImageCubit;
+
   @override
   void initState() {
     super.initState();
@@ -142,6 +151,9 @@ class _MeasurementFormState extends State<MeasurementForm> {
     if (widget.mode != Mode.add) {
       initializeControllers();
     }
+    frontNeckCubit = ImagepickCubit(_imagePicker);
+    backNeckCubit = ImagepickCubit(_imagePicker);
+    userImageCubit = ImagepickCubit(_imagePicker);
   }
 
   void initializeControllers() {
@@ -272,6 +284,7 @@ class _MeasurementFormState extends State<MeasurementForm> {
   Widget _buildForm(BuildContext context) {
     return ListView(
       padding: EdgeInsets.all(20.0),
+      physics: BouncingScrollPhysics(),
       children: [
         _buildTemplate(title: "Kurtha", data: kurtha),
         _buildTemplate(title: "Surwal", data: surwal),
@@ -283,57 +296,69 @@ class _MeasurementFormState extends State<MeasurementForm> {
             Expanded(
               child: GestureDetector(
                 onTap: (widget.mode == Mode.view)
-                    ? () {}
+                    ? () {
+                        _showPhoto(frontNeckimageFile);
+                      }
                     : () {
                         showDialog(
                             context: context,
                             child: _alert(onCameraPressed: () async {
                               Navigator.pop(context);
-                              final file = await _getImage(ImageSource.camera);
-                              if (file != null) {
-                                setState(() {
-                                  frontNeckimageFile = file;
-                                });
-                              }
+                              frontNeckCubit.pickImage(ImageSource.camera);
+                              // final file = await _getImage(ImageSource.camera);
+                              // if (file != null) {
+                              //   setState(() {
+                              //     frontNeckimageFile = file;
+                              //   });
+                              // }
                             }, onGalleryPressed: () async {
                               Navigator.pop(context);
-                              final file = await _getImage(ImageSource.gallery);
-                              if (file != null) {
-                                setState(() {
-                                  frontNeckimageFile = file;
-                                });
-                              }
+                              frontNeckCubit.pickImage(ImageSource.gallery);
+                              // final file = await _getImage(ImageSource.gallery);
+                              // if (file != null) {
+                              //   setState(() {
+                              //     frontNeckimageFile = file;
+                              //   });
+                              // }
                             }));
                       },
-                child: _imagePickContainer(frontNeckimageFile),
+                child: _imagePickContainer(frontNeckCubit, (value) {
+                  frontNeckimageFile = value;
+                }, frontNeckimageFile),
               ),
             ),
             Expanded(
               child: GestureDetector(
                 onTap: (widget.mode == Mode.view)
-                    ? () {}
+                    ? () {
+                        _showPhoto(backNeckimageFile);
+                      }
                     : () {
                         showDialog(
                             context: context,
                             child: _alert(onCameraPressed: () async {
                               Navigator.pop(context);
-                              final file = await _getImage(ImageSource.camera);
-                              if (file != null) {
-                                setState(() {
-                                  backNeckimageFile = file;
-                                });
-                              }
+                              backNeckCubit.pickImage(ImageSource.camera);
+                              // final file = await _getImage(ImageSource.camera);
+                              // if (file != null) {
+                              //   setState(() {
+                              //     backNeckimageFile = file;
+                              //   });
+                              // }
                             }, onGalleryPressed: () async {
                               Navigator.pop(context);
-                              final file = await _getImage(ImageSource.gallery);
-                              if (file != null) {
-                                setState(() {
-                                  backNeckimageFile = file;
-                                });
-                              }
+                              backNeckCubit.pickImage(ImageSource.gallery);
+                              // final file = await _getImage(ImageSource.gallery);
+                              // if (file != null) {
+                              //   setState(() {
+                              //     backNeckimageFile = file;
+                              //   });
+                              // }
                             }));
                       },
-                child: _imagePickContainer(backNeckimageFile),
+                child: _imagePickContainer(backNeckCubit, (value) {
+                  backNeckimageFile = value;
+                }, backNeckimageFile),
               ),
             ),
           ],
@@ -343,35 +368,88 @@ class _MeasurementFormState extends State<MeasurementForm> {
     );
   }
 
-  Widget _imagePickContainer(String image) {
+  Widget _imagePickContainer(
+      ImagepickCubit cubit, Function(String) setImageString, String image) {
     return Container(
         margin: EdgeInsets.only(left: 20.0, bottom: 20.0),
         decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20), color: Colors.grey),
+          border: Border.all(),
+          borderRadius: BorderRadius.circular(5.0),
+        ),
         height: 120,
         width: 100,
-        child: image == null && widget.mode != Mode.view
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Icon(Icons.camera_alt),
-                  Text(
-                    'Add photo',
-                    textAlign: TextAlign.center,
+        child: BlocConsumer<ImagepickCubit, ImagepickState>(
+          cubit: cubit,
+          listener: (context, state) {
+            if (state is ImageSuccess) setImageString(state.image);
+          },
+          builder: (context, state) {
+            if (state is ImageLoading) return _buildLoading();
+            if (state is ImageError)
+              return Center(
+                child: Text(
+                  state.message,
+                  textAlign: TextAlign.center,
+                ),
+              );
+            if (state is ImageSuccess) {
+              return state.image == null && widget.mode != Mode.view
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Icon(Icons.camera_alt),
+                        Text(
+                          'Add photo',
+                          textAlign: TextAlign.center,
+                        )
+                      ],
+                    )
+                  : Container(
+                      decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(5.0),
+                          image: DecorationImage(
+                            image: state.image != null
+                                ? FileImage(File(state.image))
+                                : AssetImage("assets/notfound.png"),
+                            fit: BoxFit.cover,
+                          )),
+                    );
+            }
+
+            return image == null && widget.mode != Mode.view
+                ? Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(Icons.camera_alt),
+                      Text(
+                        'Add photo',
+                        textAlign: TextAlign.center,
+                      )
+                    ],
                   )
-                ],
-              )
-            : Container(
-                decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    image: DecorationImage(
-                      image: image != null
-                          ? FileImage(File(image))
-                          : AssetImage("assets/notfound.png"),
-                      fit: BoxFit.cover,
-                    )),
-              ));
+                : Container(
+                    decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(5.0),
+                        image: DecorationImage(
+                          image: image != null
+                              ? FileImage(File(image))
+                              : AssetImage("assets/notfound.png"),
+                          fit: BoxFit.cover,
+                        )),
+                  );
+          },
+        ));
+  }
+
+  Widget _buildLoading() {
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Lottie.asset(
+        "assets/loading.json",
+      ),
+    );
   }
 
   Widget _buildCustomerInfo() {
@@ -392,8 +470,7 @@ class _MeasurementFormState extends State<MeasurementForm> {
               children: List.generate(
                   customerInfo.length,
                   (index) => Padding(
-                        padding:
-                            const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 5.0),
+                        padding: const EdgeInsets.fromLTRB(0.0, 10.0, 0.0, 5.0),
                         child: SizedBox(
                           width: MediaQuery.of(context).size.width / 2 - 40.0,
                           child: IgnorePointer(
@@ -427,29 +504,35 @@ class _MeasurementFormState extends State<MeasurementForm> {
             )),
             GestureDetector(
                 onTap: (widget.mode == Mode.view)
-                    ? () {}
+                    ? () {
+                        _showPhoto(userImage);
+                      }
                     : () {
                         showDialog(
                             context: context,
                             child: _alert(onCameraPressed: () async {
                               Navigator.pop(context);
-                              final file = await _getImage(ImageSource.camera);
-                              if (file != null) {
-                                setState(() {
-                                  userImage = file;
-                                });
-                              }
+                              userImageCubit.pickImage(ImageSource.camera);
+                              // final file = await _getImage(ImageSource.camera);
+                              // if (file != null) {
+                              //   setState(() {
+                              //     userImage = file;
+                              //   });
+                              // }
                             }, onGalleryPressed: () async {
                               Navigator.pop(context);
-                              final file = await _getImage(ImageSource.gallery);
-                              if (file != null) {
-                                setState(() {
-                                  userImage = file;
-                                });
-                              }
+                              userImageCubit.pickImage(ImageSource.gallery);
+                              // final file = await _getImage(ImageSource.gallery);
+                              // if (file != null) {
+                              //   setState(() {
+                              //     userImage = file;
+                              //   });
+                              // }
                             }));
                       },
-                child: _imagePickContainer(userImage))
+                child: _imagePickContainer(userImageCubit, (value) {
+                  userImage = value;
+                }, userImage))
           ],
         )
       ],
@@ -529,11 +612,47 @@ class _MeasurementFormState extends State<MeasurementForm> {
     );
   }
 
-  Future<String> _getImage(ImageSource source) async {
-    try {
-      return (await _imagePicker.getImage(source: source)).path;
-    } catch (e) {
-      return null;
-    }
+  _showPhoto(String image) {
+    Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (context) => Scaffold(
+                appBar: AppBar(
+                  backgroundColor: Colors.black,
+                ),
+                body: PhotoView(
+                    imageProvider: image != null
+                        ? FileImage(File(image))
+                        : AssetImage("assets/notfound.png")))));
   }
+
+  // Future<String> _getImage(ImageSource source) async {
+  //   setState(() {
+  //     _isLoading = true;
+  //   });
+  //   try {
+  //     PickedFile f = await _imagePicker.getImage(source: source);
+  //     File f1 = await ImageCropper.cropImage(
+  //         sourcePath: f.path,
+  //         aspectRatio: CropAspectRatio(ratioX: 1, ratioY: 1),
+  //         compressFormat: ImageCompressFormat.jpg,
+  //         compressQuality: 100,
+  //         maxHeight: 700,
+  //         maxWidth: 700,
+  //         androidUiSettings: AndroidUiSettings(
+  //           toolbarTitle: "Crop Image",
+  //         ));
+
+  //     setState(() {
+  //       _isLoading = false;
+  //     });
+
+  //     return f1.path;
+  //   } catch (e) {
+  //     setState(() {
+  //       _isLoading = false;
+  //     });
+  //     return null;
+  //   }
+  // }
 }
