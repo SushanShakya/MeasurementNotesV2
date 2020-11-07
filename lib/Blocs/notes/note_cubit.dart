@@ -10,7 +10,7 @@ class NoteCubit extends Cubit<NoteState> {
   NotesController _controller = NotesController();
   NoteCubit() : super(NoteInitial());
 
-  List<Note> notes;
+  List<Note> notes = [];
 
   void getAllNotes() {
     emit(NoteLoading());

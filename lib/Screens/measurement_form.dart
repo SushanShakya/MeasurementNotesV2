@@ -5,18 +5,24 @@ import 'package:MeasurementNotesV2/Controller/notes_controller.dart';
 import 'package:MeasurementNotesV2/Models/note_model.dart';
 import 'package:MeasurementNotesV2/Screens/Widgets/appbar.dart';
 import 'package:MeasurementNotesV2/Screens/Widgets/button.dart';
+import 'package:MeasurementNotesV2/Screens/Widgets/failed_dialog.dart';
+import 'package:MeasurementNotesV2/Screens/Widgets/loading.dart';
+import 'package:downloads_path_provider/downloads_path_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:MeasurementNotesV2/Screens/Widgets/success_dialog.dart';
 import 'package:lottie/lottie.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:photo_view/photo_view.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 enum Mode { add, edit, view }
 
 class MeasurementForm extends StatefulWidget {
   final Mode mode;
   final Note note;
+
   MeasurementForm({Key key, this.mode = Mode.add, this.note}) : super(key: key);
 
   @override
@@ -185,79 +191,122 @@ class _MeasurementFormState extends State<MeasurementForm> {
     return Scaffold(
       appBar: appBar("Measurements"),
       body: _buildForm(context),
-      bottomNavigationBar: Visibility(
-        visible: widget.mode != Mode.view,
-        child: Padding(
-          padding: const EdgeInsets.all(10.0),
-          child: Row(
-            // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Visibility(
-                  visible: widget.mode == Mode.edit,
-                  child: Expanded(
-                      child: SimpleRoundIconButton(
-                    text: "Delete",
-                    icon: Icons.delete,
-                    backgroundColor: Colors.red,
-                    onPressed: () async {
-                      bool value = await showDialog(
-                          context: context,
-                          child: AlertDialog(
-                            title: Text("Delete ?"),
-                            content:
-                                Text("Are you sure you want to delete this ?"),
-                            actions: [
-                              FlatButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop(false);
-                                },
-                                child: Text("No"),
-                              ),
-                              FlatButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop(true);
-                                },
-                                child: Text("Yes"),
-                              ),
-                            ],
-                          ));
-                      if (value) {
-                        await NotesController().deleteNote(widget.note.id);
-                        context.bloc<NoteCubit>().getAllNotes();
-                        showSuccessDialog(context, "Deleted Successfully");
-                      }
-                    },
-                  ))),
-              Visibility(
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(10.0),
+        child: Row(
+          // mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            Visibility(
                 visible: widget.mode == Mode.edit,
-                child: SizedBox(
-                  width: 10.0,
+                child: Expanded(
+                    child: SimpleRoundIconButton(
+                  text: "Delete",
+                  icon: Icons.delete,
+                  backgroundColor: Colors.red,
+                  onPressed: () async {
+                    bool value = await showDialog(
+                        context: context,
+                        child: AlertDialog(
+                          title: Text("Delete ?"),
+                          content:
+                              Text("Are you sure you want to delete this ?"),
+                          actions: [
+                            FlatButton(
+                              onPressed: () {
+                                Navigator.of(context).pop(false);
+                              },
+                              child: Text("No"),
+                            ),
+                            FlatButton(
+                              onPressed: () {
+                                Navigator.of(context).pop(true);
+                              },
+                              child: Text("Yes"),
+                            ),
+                          ],
+                        ));
+                    if (value) {
+                      await NotesController().deleteNote(widget.note.id);
+                      context.bloc<NoteCubit>().getAllNotes();
+                      showSuccessDialog(context, "Deleted Successfully");
+                    }
+                  },
+                ))),
+            Visibility(
+              visible: widget.mode == Mode.view,
+              child: Expanded(
+                child: SimpleRoundIconButton(
+                  backgroundColor: Colors.pink,
+                  onPressed: () async {
+                    // print(await widget.note.covertToPdfWidgets(pdf));
+                    showLoadingDialogue(context);
+                    try {
+                      final pw.Document pdf = pw.Document();
+
+                      pdf.addPage(await widget.note.covertToPdfWidgets(pdf));
+
+                      var status = await Permission.storage.status;
+                      if (!status.isGranted) {
+                        await Permission.storage.request();
+                      }
+
+                      Directory dir =
+                          await DownloadsPathProvider.downloadsDirectory;
+
+                      String docPath = dir.path;
+
+                      String fileName =
+                          "${widget.note.name}${DateTime.now().microsecondsSinceEpoch}.pdf";
+
+                      File file = File("$docPath/$fileName");
+
+                      file.writeAsBytesSync(pdf.save());
+
+                      await showSuccessDialog(
+                          context, "Saved at\nDownloads/$fileName");
+                    } catch (e) {
+                      Navigator.pop(context);
+                      await showErrorDialogue(context, e.toString());
+                    }
+                  },
+                  text: "PDF",
+                  icon: Icons.picture_as_pdf,
                 ),
               ),
-              Expanded(
+            ),
+            Visibility(
+              visible: widget.mode == Mode.edit,
+              child: SizedBox(
+                width: 10.0,
+              ),
+            ),
+            Visibility(
+              visible: widget.mode != Mode.view,
+              child: Expanded(
                 child: SimpleRoundIconButton(
                   text: "Save",
                   icon: Icons.save,
                   onPressed: () async {
                     Note note = Note(
-                        name: controller['name'].text,
+                        name: _firstCapital(controller['name'].text),
                         phone: controller['phone'].text,
-                        address: controller['address'].text,
+                        address: _firstCapital(controller['address'].text),
                         length: controller['length'].text,
                         chest: controller['chest'].text,
                         waist: controller['waist'].text,
                         hip: controller['hip'].text,
                         sholder: controller['sholder'].text,
                         chirne: controller['chirne'].text,
-                        pher: controller['pher'].text,
+                        pher: _firstCapital(controller['pher'].text),
                         baulaLength: controller['baula_length'].text,
                         baulaBreath: controller['baula_breath'].text,
                         surwalLength: controller['surwal_length'].text,
                         surwalBreath: controller['surwal_breath'].text,
                         surwalKnee: controller['surwal_knee'].text,
-                        surwalDesign: controller['surwal_design'].text,
-                        neckBack: controller['neck_back'].text,
-                        neckFront: controller['neck_front'].text,
+                        surwalDesign:
+                            _firstCapital(controller['surwal_design'].text),
+                        neckBack: _firstCapital(controller['neck_back'].text),
+                        neckFront: _firstCapital(controller['neck_front'].text),
                         frontNeck: frontNeckimageFile,
                         backNeck: backNeckimageFile,
                         image: userImage);
@@ -274,12 +323,14 @@ class _MeasurementFormState extends State<MeasurementForm> {
                   },
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  String _firstCapital(String s) => s[0].toUpperCase() + s.substring(1);
 
   Widget _buildForm(BuildContext context) {
     return ListView(
@@ -626,33 +677,33 @@ class _MeasurementFormState extends State<MeasurementForm> {
                         : AssetImage("assets/notfound.png")))));
   }
 
-  // Future<String> _getImage(ImageSource source) async {
-  //   setState(() {
-  //     _isLoading = true;
-  //   });
-  //   try {
-  //     PickedFile f = await _imagePicker.getImage(source: source);
-  //     File f1 = await ImageCropper.cropImage(
-  //         sourcePath: f.path,
-  //         aspectRatio: CropAspectRatio(ratioX: 1, ratioY: 1),
-  //         compressFormat: ImageCompressFormat.jpg,
-  //         compressQuality: 100,
-  //         maxHeight: 700,
-  //         maxWidth: 700,
-  //         androidUiSettings: AndroidUiSettings(
-  //           toolbarTitle: "Crop Image",
-  //         ));
+// Future<String> _getImage(ImageSource source) async {
+//   setState(() {
+//     _isLoading = true;
+//   });
+//   try {
+//     PickedFile f = await _imagePicker.getImage(source: source);
+//     File f1 = await ImageCropper.cropImage(
+//         sourcePath: f.path,
+//         aspectRatio: CropAspectRatio(ratioX: 1, ratioY: 1),
+//         compressFormat: ImageCompressFormat.jpg,
+//         compressQuality: 100,
+//         maxHeight: 700,
+//         maxWidth: 700,
+//         androidUiSettings: AndroidUiSettings(
+//           toolbarTitle: "Crop Image",
+//         ));
 
-  //     setState(() {
-  //       _isLoading = false;
-  //     });
+//     setState(() {
+//       _isLoading = false;
+//     });
 
-  //     return f1.path;
-  //   } catch (e) {
-  //     setState(() {
-  //       _isLoading = false;
-  //     });
-  //     return null;
-  //   }
-  // }
+//     return f1.path;
+//   } catch (e) {
+//     setState(() {
+//       _isLoading = false;
+//     });
+//     return null;
+//   }
+// }
 }

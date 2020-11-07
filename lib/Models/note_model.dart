@@ -1,4 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:MeasurementNotesV2/Models/tuple.dart';
+import 'package:flutter/services.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart';
 
 class Note {
   int id;
@@ -162,5 +167,183 @@ class Note {
   @override
   String toString() {
     return 'Note(id: $id, length: $length, chest: $chest, waist: $waist, hip: $hip, sholder: $sholder, chirne: $chirne, pher: $pher, baulaLength: $baulaLength, baulaBreath: $baulaBreath, surwalLength: $surwalLength, surwalBreath: $surwalBreath, surwalKnee: $surwalKnee, surwalDesign: $surwalDesign, neckFront: $neckFront, neckBack: $neckBack, frontNeck: $frontNeck, backNeck: $backNeck, name: $name, phone: $phone, address: $address, image: $image)';
+  }
+
+  Future<MultiPage> covertToPdfWidgets(Document doc) async {
+    List<Tuple> _kurtha = [
+      Tuple("Length", length),
+      Tuple("Chest", chest),
+      Tuple("Waist", waist),
+      Tuple("Hip", hip),
+      Tuple("Sholder", sholder),
+      Tuple("Chirne", chirne),
+      Tuple("Pher", pher),
+      Tuple("Baula Length", baulaLength),
+      Tuple("Baula Breadth", baulaBreath),
+    ];
+
+    List<Tuple> _surwal = [
+      Tuple("Length", surwalLength),
+      Tuple("Breadth", surwalBreath),
+      Tuple("Knee", surwalKnee),
+      Tuple("Design", surwalDesign),
+    ];
+
+    final PdfImage frontNeckImage = (frontNeck == null)
+        ? null
+        : PdfImage.file(
+            doc.document,
+            bytes: await File(frontNeck).readAsBytes(),
+          );
+
+    final PdfImage backNeckImage = (backNeck == null)
+        ? null
+        : PdfImage.file(
+            doc.document,
+            bytes: await File(backNeck).readAsBytes(),
+          );
+
+    final PdfImage userImage = (image == null)
+        ? PdfImage.file(
+            doc.document,
+            bytes:
+                (await rootBundle.load('assets/id.jpg')).buffer.asUint8List(),
+          )
+        : PdfImage.file(
+            doc.document,
+            bytes: await File(image).readAsBytes(),
+          );
+
+    return MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        build: (Context context) => <Widget>[
+              Row(children: [
+                _buildImage(userImage),
+                Padding(padding: EdgeInsets.only(left: 20.0)),
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(name,
+                      style: Theme.of(context).defaultTextStyle.copyWith(
+                          fontWeight: FontWeight.bold, fontSize: 28.0)),
+                  Text(address),
+                  Text(phone),
+                ])
+              ]),
+              SizedBox(height: 20.0),
+              Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _buildContainerWithTitle(
+                          'Kurtha', _buildData(_kurtha)),
+                    ),
+                    SizedBox(width: 10.0),
+                    Expanded(
+                      child: _buildContainerWithTitle(
+                          'Surwal', _buildData(_surwal)),
+                    ),
+                    SizedBox(width: 10.0),
+                    Expanded(
+                        child: _buildContainerWithTitle(
+                            'Neck',
+                            Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(height: 10.0),
+                                  Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text("Front Neck"),
+                                        Text("\t:\t"),
+                                        Expanded(child: Text(neckFront))
+                                      ]),
+                                  SizedBox(height: 10.0),
+                                  _buildImage(frontNeckImage),
+                                  SizedBox(height: 10.0),
+                                  Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text("Back Neck"),
+                                        Text("\t:\t"),
+                                        Expanded(child: Text(neckBack)),
+                                      ]),
+                                  SizedBox(height: 10.0),
+                                  _buildImage(backNeckImage)
+                                ]))),
+                  ]),
+              // Partitions(children: [
+              //   Partition(
+              //       child: _buildContainerWithTitle(
+              //           'Kurtha', _buildData(_kurtha))),
+              //   Partition(
+              //     child: Column(children: [Container(width: 10.0)]),
+              //   ),
+              //   Partition(
+              //       child: _buildContainerWithTitle(
+              //           'Surwal', _buildData(_surwal))),
+              //   Partition(
+              //     child: Column(children: [Container(width: 10.0)]),
+              //   ),
+              //   Partition(
+              //     child: _buildContainerWithTitle(
+              //         'Neck',
+              //         Column(
+              //             crossAxisAlignment: CrossAxisAlignment.start,
+              //             children: [
+              //               SizedBox(height: 10.0),
+              //               Row(children: [
+              //                 Text("Front Neck"),
+              //                 Text("\t:\t"),
+              //                 Text(neckFront)
+              //               ]),
+              //               SizedBox(height: 10.0),
+              //               _buildImage(frontNeckImage),
+              //               SizedBox(height: 10.0),
+              //               Row(children: [
+              //                 Text("Back Neck"),
+              //                 Text("\t:\t"),
+              //                 Text(neckBack)
+              //               ]),
+              //               SizedBox(height: 10.0),
+              //               _buildImage(backNeckImage)
+              //             ])),
+              //   )
+              // ]),
+            ]);
+  }
+
+  _buildImage(PdfImage image) {
+    return (image == null)
+        ? Container()
+        : Container(
+            decoration: BoxDecoration(
+                border: BoxBorder(
+                    left: true, right: true, top: true, bottom: true)),
+            width: 100,
+            height: 100,
+            child: Image(image));
+  }
+
+  _buildContainerWithTitle(String title, Widget child) {
+    return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [Header(level: 1, text: title), child]);
+  }
+
+  _buildData(List<Tuple> children) {
+    return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: children
+            .map((e) => Padding(
+                padding: EdgeInsets.only(top: 10.0),
+                child:
+                    Row(children: [Text(e.key), Text("\t:\t"), Text(e.value)])))
+            .toList());
   }
 }
